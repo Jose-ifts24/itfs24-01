@@ -11,7 +11,8 @@ from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 
 
 # Cargo el dataset 
-data_path = '../DS/muerte causas_2019-2021.csv'
+#data_path = '../DS/muerte causas_2019-2021.csv'
+data_path = 'muerte causas_2019-2021.csv'
 #df = pd.read_csv(data_path, sep=';')
 df_original = pd.read_csv(data_path)
 df = df_original.drop(['AnalysisDate','Note','flag_allcause','flag_natcause','flag_sept','flag_neopl','flag_diab','flag_alz','flag_inflpn','flag_clrd','flag_otherresp','flag_nephr','flag_otherunk','flag_hd','flag_stroke','flag_cov19mcod','flag_cov19ucod'], axis=1)
