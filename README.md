@@ -4,7 +4,11 @@ Esta aplicación muestra de manera interactiva el análisis del dataset para que
 
 # Autores
 Mónica Casco
+
 Rocío Napán 
+
 Gabriel Marquez 
+
 Juan Carabetta
+
 José Barrionuevo
