@@ -118,8 +118,8 @@ if error == 0:
         ax.set_xlabel(col_x)
         ax.set_ylabel(col_y)
         ax.legend()
-        st.pyplot(fig)
-        plt.close(fig) 
+        st.plotly_chart(fig)
+    #    plt.close(fig) 
 
     elif modelo == 'Regresión logística':
         X_train, X_test, y_train, y_test = train_test_split(df[[col_x]], (df[col_y] > 0).astype(int), test_size=0.2, random_state=42)
@@ -149,7 +149,7 @@ if error == 0:
             ax.set_ylim(-0.1, 1.1)
             ax.legend()
             st.pyplot(fig)
-            plt.close(fig)
+    #        plt.close(fig)
 
     elif modelo == 'K-vecinos más cercanos':
         X_train, X_test, y_train, y_test = train_test_split(df[[col_x]], df[col_y], test_size=0.2, random_state=42)
@@ -172,4 +172,4 @@ if error == 0:
         ax.set_ylabel(col_y)
         ax.legend()
         st.pyplot(fig)
-        plt.close(fig)
+    #    plt.close(fig)
