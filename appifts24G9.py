@@ -8,14 +8,25 @@ from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 
-# Cargo el dataset 
-#data_path = '../DS/muerte causas_2019-2021.csv'
+# Cargo el dataset (Modificar teniendo en cuenta el dataset que se usa si se usa algun encoders y si eliminan algunas columnas)
 data_path = 'muerte causas_2019-2021.csv'
-#df = pd.read_csv(data_path, sep=';')
 df_original = pd.read_csv(data_path)
+
+# Aplicar label encoding utilizando pd.factorize()
+LE_HHSRegion, _ = pd.factorize(df_original['HHSRegion'])
+LE_AgeGroup, _ = pd.factorize(df_original['AgeGroup'])
+
+# Agregar la columna al DataFrame original
+df_original['LE_HHSRegion'] = LE_HHSRegion
+df_original['LE_AgeGroup'] = LE_AgeGroup
+
+# eliminar columnas innecesarias
 df = df_original.drop(['AnalysisDate','Note','flag_allcause','flag_natcause','flag_sept','flag_neopl','flag_diab','flag_alz','flag_inflpn','flag_clrd','flag_otherresp','flag_nephr','flag_otherunk','flag_hd','flag_stroke','flag_cov19mcod','flag_cov19ucod'], axis=1)
+
 
 # Apply the function
 df = df.fillna(0)
@@ -26,7 +37,6 @@ st.title("Visualizador Interactivo con Filtros")
 # Identificar columnas numéricas y categóricas
 col_num = df.select_dtypes(include='number').columns.tolist()
 col_cat = df.select_dtypes(exclude='number').columns.tolist()
-#col_cat = df.columns[1]
 
 st.sidebar.header("Seleccionar Filtros")
 
@@ -50,7 +60,6 @@ col_color = st.selectbox("Agrupar por (color)", ["Ninguna"] + col_cat)
 
 # Tipo de gráfico
 tipo = st.radio("Tipo de gráfico", ["Dispersión", "Línea", "Barras"])
-#tipo = st.radio("Tipo de gráfico", ["Dispersión", "Barras"])
 
 # Crear gráfico
 if not df.empty:
@@ -69,15 +78,25 @@ else:
 
 # Selección del tipo de modelo de machine learning
 modelo = st.selectbox('Seleccione el modelo de machine learning', ['Regresión lineal', 'Regresión logística', 'K-vecinos más cercanos'])
+
 error=0
+#    El DataFrame está vacío
 if df.empty:
-#    raise ValueError("El DataFrame está vacío.")
     print("El DataFrame está vacío.")
     error=1
+
+#    Las columnas especificadas no existen en el DataFrame.
 if col_x not in df.columns or col_y not in df.columns:
-#    raise ValueError("Las columnas especificadas no existen en el DataFrame.")
     print("Las columnas especificadas no existen en el DataFrame.")
     error=1
+
+#    si tomo columnas categoricas las cambio por columnas donde se aplico label encoding.
+
+if col_x == "AgeGroup" or col_y == "AgeGroup":
+    col_x = "LE_AgeGroup"
+if col_x == "HHSRegion" or col_y == "HHSRegion":
+    col_x = "LE_HHSRegion"
+
 
 # Entrenar modelo
 if error == 0:
@@ -90,6 +109,18 @@ if error == 0:
         mae = mean_absolute_error(y_test, y_pred)
         r2 = r2_score(y_test, y_pred)
         st.write(f'MSE: {mse:.2f}, MAE: {mae:.2f}, R2: {r2:.2f}')
+
+        # Mostrar regresion lineal
+        fig, ax = plt.subplots(figsize=(10, 6))
+        sns.scatterplot(x=X_test[col_x], y=y_test, ax=ax, label='Datos Reales')
+        sns.lineplot(x=X_test[col_x], y=y_pred, color='red', ax=ax, label='Línea de Regresión')
+        ax.set_title('Regresión Lineal')
+        ax.set_xlabel(col_x)
+        ax.set_ylabel(col_y)
+        ax.legend()
+        st.pyplot(fig)
+        plt.close(fig) 
+
     elif modelo == 'Regresión logística':
         X_train, X_test, y_train, y_test = train_test_split(df[[col_x]], (df[col_y] > 0).astype(int), test_size=0.2, random_state=42)
         if len(set(y_train)) == 1:
@@ -99,6 +130,27 @@ if error == 0:
             model.fit(X_train, y_train)
             y_pred = model.predict(X_test)
             st.write(f'Precisión: {model.score(X_test, y_test):.2f}')
+
+            # Mostrar regresion Logistica (probabilidades)
+            # necesitamos predecir probabilidades para mostrar
+            y_prob = model.predict_proba(X_test)[:, 1] # probabilidad de la clase positiva
+
+            fig, ax = plt.subplots(figsize=(10, 6))
+            # Ordenar valores para una curva logística más suave
+            sort_idx = X_test[col_x].argsort()
+            X_test_sorted = X_test[col_x].iloc[sort_idx]
+            y_prob_sorted = y_prob[sort_idx]
+
+            sns.scatterplot(x=X_test[col_x], y=y_test, ax=ax, alpha=0.6, label='Datos Reales (0 o 1)')
+            sns.lineplot(x=X_test_sorted, y=y_prob_sorted, color='red', ax=ax, label='Probabilidad Predicha')
+            ax.set_title('Regresión Logística')
+            ax.set_xlabel(col_x)
+            ax.set_ylabel('Probabilidad (Clase 1)')
+            ax.set_ylim(-0.1, 1.1)
+            ax.legend()
+            st.pyplot(fig)
+            plt.close(fig)
+
     elif modelo == 'K-vecinos más cercanos':
         X_train, X_test, y_train, y_test = train_test_split(df[[col_x]], df[col_y], test_size=0.2, random_state=42)
         model = KNeighborsRegressor(n_neighbors=5)
@@ -108,3 +160,16 @@ if error == 0:
         mae = mean_absolute_error(y_test, y_pred)
         r2 = r2_score(y_test, y_pred)
         st.write(f'MSE: {mse:.2f}, MAE: {mae:.2f}, R2: {r2:.2f}')
+
+        # Mostrar Regression vecinos
+        fig, ax = plt.subplots(figsize=(10, 6))
+        sns.scatterplot(x=X_test[col_x], y=y_test, ax=ax, label='Datos Reales')
+        # Ordene X_test para dibujar una línea suave para la predicción de vecinos
+        sort_idx = X_test[col_x].argsort()
+        sns.lineplot(x=X_test[col_x].iloc[sort_idx], y=y_pred[sort_idx], color='red', ax=ax, label='Predicción KNN')
+        ax.set_title('Regresión K-Vecinos Más Cercanos')
+        ax.set_xlabel(col_x)
+        ax.set_ylabel(col_y)
+        ax.legend()
+        st.pyplot(fig)
+        plt.close(fig)
